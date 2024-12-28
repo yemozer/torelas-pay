@@ -3,11 +3,10 @@ module.exports = {
       name: 'torelas-pay',
       exec_mode: 'cluster',
       instances: 'max',
-      script: './.output/server/index.mjs',
+      script: './server/index.mjs',  // Changed from .output/server/index.mjs
       env: {
         PORT: 3000,
         HOST: 'localhost'
       }
     }]
   }
-  
