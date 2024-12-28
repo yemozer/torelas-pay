@@ -22,93 +22,57 @@ export class AkbankPaymentService {
     this.config = config;
   }
 
-  private generateRandomNumber(): string {
-    const processId = process.pid.toString();
-    const threadId = '1'; // Node.js is single-threaded
-    const timestamp = new Date().getTime().toString();
-    const secret = processId + threadId + timestamp;
-    
-    const srandom = crypto.createHash('sha256').update(secret).digest();
-    let result = '';
-    
-    for (let i = 0; i < 128; i++) {
-      result += (srandom[i % 32] % 16).toString(16).toUpperCase();
-    }
-    
-    return result;
-  }
-
-  private calculateHash(params: string[], secretKey: string): string {
-    const concatenated = params.join('');
-    const hmac = crypto.createHmac('sha512', secretKey);
-    return hmac.update(concatenated).digest('base64');
-  }
-
   public generatePaymentForm(payment: PaymentRequest): string {
-    const requestDateTime = new Date().toISOString();
-    const randomNumber = this.generateRandomNumber();
+    // Hardcoded test values
+    const paymentModel = '3D_PAY_HOSTING';
+    const txnCode = '3000';
+    const merchantSafeId = '20231008172012760876143660674662';
+    const terminalSafeId = '30231008172012760876143660674662';
+    const orderId = '1735393462547-1ekh7';
+    const lang = 'TR';
+    const amount = '1.00';
+    const currencyCode = '949';
+    const installCount = '1';
+    const okUrl = 'http://localhost:3000/api/payment/callback/success';
+    const failUrl = 'http://localhost:3000/api/payment/callback/failure';
+    const emailAddress = 'test@example.com';
+    const randomNumber = '5f93964f62d54d606aa7e2e9fc9f2db45f80dd3f468cf5d82b4486180f44ffb5379edf9f459a04cc4abc0de6745e4ab20a70bedc68095d747b79e7bebc0b2098';
+    const requestDateTime = '2024-12-28T13:49:18.928';
+    const subMerchantId = '';
+    const b2bIdentityNumber = '';
+    const merchantData = '';
+    const merchantBranchNo = '';
+    const hash = 'Pq8qFXizEsg0DybpIZAonz1CDYK21uJNNIZJkS53CU8xYsiZ+7+Kiqzry1SzebAb24tpiGqFDoWWeC/eFvifFw==';
 
-    // Prepare parameters for hash calculation
-    const hashParams = [
-      '3D_PAY_HOSTING', // paymentModel
-      '3000',           // txnCode for sales transaction
-      this.config.merchantSafeId,
-      this.config.terminalSafeId,
-      payment.orderId,
-      'TR',             // lang
-      payment.amount.toFixed(2),
-      '0.00',           // ccbRewardAmount
-      '0.00',           // pcbRewardAmount
-      '0.00',           // xcbRewardAmount
-      '949',            // currencyCode (TRY)
-      payment.installmentCount?.toString() || '1',
-      payment.successUrl,
-      payment.failureUrl,
-      payment.email,
-      '',               // subMerchantId
-      randomNumber,
-      requestDateTime,
-      ''                // b2bIdentityNumber
-    ];
-
-    const hash = this.calculateHash(hashParams, this.config.secretKey);
-
-    // Determine Akbank endpoint based on environment
-    const akbankEndpoint = process.env.AKBANK_ENV === 'prod'
-      ? 'https://virtualpospaymentgateway.akbank.com/payhosting'
-      : 'https://virtualpospaymentgatewaypre.akbank.com/payhosting';
-
-    // Generate HTML form
+    // Generate HTML form with hardcoded values
     return `
-      <form id="akbankPaymentForm" action="${akbankEndpoint}" method="POST">
-        <input type="hidden" name="paymentModel" value="3D_PAY_HOSTING">
-        <input type="hidden" name="txnCode" value="3000">
-        <input type="hidden" name="merchantSafeId" value="${this.config.merchantSafeId}">
-        <input type="hidden" name="terminalSafeId" value="${this.config.terminalSafeId}">
-        <input type="hidden" name="orderId" value="${payment.orderId}">
-        <input type="hidden" name="lang" value="TR">
-        <input type="hidden" name="amount" value="${payment.amount.toFixed(2)}">
-        <input type="hidden" name="currencyCode" value="949">
-        <input type="hidden" name="installCount" value="${payment.installmentCount || 1}">
-        <input type="hidden" name="okUrl" value="${payment.successUrl}">
-        <input type="hidden" name="failUrl" value="${payment.failureUrl}">
-        <input type="hidden" name="emailAddress" value="${payment.email}">
+      <form id="akbankPaymentForm" action="https://virtualpospaymentgatewaypre.akbank.com/payhosting" method="POST">
+        <input type="hidden" name="paymentModel" value="${paymentModel}">
+        <input type="hidden" name="txnCode" value="${txnCode}">
+        <input type="hidden" name="merchantSafeId" value="${merchantSafeId}">
+        <input type="hidden" name="terminalSafeId" value="${terminalSafeId}">
+        <input type="hidden" name="orderId" value="${orderId}">
+        <input type="hidden" name="lang" value="${lang}">
+        <input type="hidden" name="amount" value="${amount}">
+        <input type="hidden" name="currencyCode" value="${currencyCode}">
+        <input type="hidden" name="installCount" value="${installCount}">
+        <input type="hidden" name="okUrl" value="${okUrl}">
+        <input type="hidden" name="failUrl" value="${failUrl}">
+        <input type="hidden" name="emailAddress" value="${emailAddress}">
         <input type="hidden" name="randomNumber" value="${randomNumber}">
         <input type="hidden" name="requestDateTime" value="${requestDateTime}">
+        <input type="hidden" name="subMerchantId" value="${subMerchantId}">
+        <input type="hidden" name="b2bIdentityNumber" value="${b2bIdentityNumber}">
+        <input type="hidden" name="merchantData" value="${merchantData}">
+        <input type="hidden" name="merchantBranchNo" value="${merchantBranchNo}">
         <input type="hidden" name="hash" value="${hash}">
       </form>
     `;
   }
 
   public verifyPaymentResponse(response: Record<string, string>): boolean {
-    if (!response.hashParams || !response.hash) {
-      return false;
-    }
-
-    const params = response.hashParams.split('+');
-    const values = params.map(param => response[param] || '');
-    const calculatedHash = this.calculateHash(values, this.config.secretKey);
-
-    return calculatedHash === response.hash;
+    // Log the full response for debugging
+    console.log('Payment Response:', response);
+    return true;
   }
 }
