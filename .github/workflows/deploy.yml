@@ -33,5 +33,5 @@ jobs:
       
       - name: Deploy with rsync
         run: |
-          rsync -avz --delete ./.output/ ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }}:/var/www/your-app/
-          rsync -avz --delete ./ecosystem.config.js ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }}:/var/www/your-app/
+          rsync -avz --delete ./.output/ ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }}:/var/www/torelas-pay/
+          rsync -avz --delete ./ecosystem.config.js ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }}:/var/www/torelas-pay/
