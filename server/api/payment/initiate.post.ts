@@ -20,7 +20,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const baseUrl = process.env.BASE_URL || 'http://localhost:3000'
+  // Get the request host from the event
+  const host = event.node.req.headers.host
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
+  const baseUrl = process.env.BASE_URL || `${protocol}://${host}`
   
   const form = paymentService.generatePaymentForm({
     amount,

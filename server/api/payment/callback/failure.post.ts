@@ -22,6 +22,15 @@ export default defineEventHandler(async (event) => {
   // You should implement your business logic here
   // For example, update order status, log error, etc.
   
-  // Redirect to failure page
-  return sendRedirect(event, '/payment/failure')
+  // Extract relevant error information
+  const errorDetails = {
+    responseCode: body.responseCode,
+    responseMessage: body.responseMessage,
+    orderId: body.orderId,
+    errorCode: body.errorCode,
+    errorMessage: body.errorMessage
+  }
+
+  // Redirect to failure page with error details
+  return sendRedirect(event, `/payment/failure?${new URLSearchParams(errorDetails).toString()}`)
 })
