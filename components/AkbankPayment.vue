@@ -57,7 +57,6 @@ const initiatePayment = async () => {
     document.body.appendChild(tempDiv)
     const paymentForm = document.getElementById('akbankPaymentForm') as HTMLFormElement
     paymentForm?.submit()
-    
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Bir hata oluştu'
   } finally {
@@ -69,6 +68,10 @@ const initiatePayment = async () => {
 <style scoped>
 .payment-container {
   padding: 1rem;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .payment-button {
@@ -92,5 +95,13 @@ const initiatePayment = async () => {
 .error {
   color: #dc3545;
   margin: 1rem 0;
+}
+
+.payment-iframe {
+  width: 100%;
+  height: 700px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-top: 1rem;
 }
 </style>

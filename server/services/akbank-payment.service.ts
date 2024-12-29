@@ -22,57 +22,133 @@ export class AkbankPaymentService {
     this.config = config;
   }
 
-  public generatePaymentForm(payment: PaymentRequest): string {
-    // Hardcoded test values
-    const paymentModel = '3D_PAY_HOSTING';
-    const txnCode = '3000';
-    const merchantSafeId = '20231008172012760876143660674662';
-    const terminalSafeId = '30231008172012760876143660674662';
-    const orderId = '1735393462547-1ekh7';
-    const lang = 'TR';
-    const amount = '1.00';
-    const currencyCode = '949';
-    const installCount = '1';
-    const okUrl = 'http://localhost:3000/api/payment/callback/success';
-    const failUrl = 'http://localhost:3000/api/payment/callback/failure';
-    const emailAddress = 'test@example.com';
-    const randomNumber = '5f93964f62d54d606aa7e2e9fc9f2db45f80dd3f468cf5d82b4486180f44ffb5379edf9f459a04cc4abc0de6745e4ab20a70bedc68095d747b79e7bebc0b2098';
-    const requestDateTime = '2024-12-28T13:49:18.928';
-    const subMerchantId = '';
-    const b2bIdentityNumber = '';
-    const merchantData = '';
-    const merchantBranchNo = '';
-    const hash = 'Pq8qFXizEsg0DybpIZAonz1CDYK21uJNNIZJkS53CU8xYsiZ+7+Kiqzry1SzebAb24tpiGqFDoWWeC/eFvifFw==';
+  private calculateHash(params: Record<string, string>): string {
+    // Build data string exactly as shown in documentation
+    const data = params.paymentModel +
+      params.txnCode +
+      params.merchantSafeId +
+      params.terminalSafeId +
+      params.orderId +
+      params.lang +
+      params.amount +
+      params.currencyCode +
+      params.installCount +
+      params.okUrl +
+      params.failUrl +
+      params.emailAddress +
+      (params.subMerchantId || '') +
+      '' + // creditCard
+      '' + // expiredDate
+      '' + // cvv
+      params.randomNumber +
+      params.requestDateTime +
+      (params.b2bIdentityNumber || '');
 
-    // Generate HTML form with hardcoded values
+    // Create HMAC SHA512 with raw secret key (matching Java implementation)
+    const hmac = crypto.createHmac('sha512', this.config.secretKey);
+    
+    // Update with UTF-8 encoded data (matching Java's data.getBytes("UTF-8"))
+    hmac.update(Buffer.from(data, 'utf8'));
+    
+    // Get Base64 encoded hash (matching Java's Base64.getEncoder().encodeToString())
+    const hash = hmac.digest('base64');
+
+    console.log('Data String:', data);
+    console.log('Secret Key:', this.config.secretKey);
+    console.log('Calculated Hash:', hash);
+    return hash;
+  }
+
+  public generatePaymentForm(payment: PaymentRequest): string {
+    const randomNumber = crypto.randomBytes(64).toString('hex');
+    const now = new Date();
+    const requestDateTime = now.getFullYear() + '-' + 
+      String(now.getMonth() + 1).padStart(2, '0') + '-' +
+      String(now.getDate()).padStart(2, '0') + 'T' +
+      String(now.getHours()).padStart(2, '0') + ':' +
+      String(now.getMinutes()).padStart(2, '0') + ':' +
+      String(now.getSeconds()).padStart(2, '0') + '.' +
+      String(now.getMilliseconds()).padStart(3, '0');
+
+    const params = {
+      paymentModel: '3D_PAY_HOSTING',
+      txnCode: '3000',
+      merchantSafeId: this.config.merchantSafeId,
+      terminalSafeId: this.config.terminalSafeId,
+      orderId: payment.orderId,
+      lang: 'TR',
+      amount: payment.amount.toFixed(2),
+      currencyCode: '949',
+      installCount: (payment.installmentCount || 1).toString(),
+      okUrl: payment.successUrl,
+      failUrl: payment.failureUrl,
+      emailAddress: payment.email,
+      randomNumber,
+      requestDateTime,
+      subMerchantId: '',
+      b2bIdentityNumber: '',
+      merchantData: '',
+      merchantBranchNo: ''
+    };
+    
+    // Calculate hash with actual parameters
+    const hash = this.calculateHash(params);
+
+    // Generate HTML form with test parameters
     return `
       <form id="akbankPaymentForm" action="https://virtualpospaymentgatewaypre.akbank.com/payhosting" method="POST">
-        <input type="hidden" name="paymentModel" value="${paymentModel}">
-        <input type="hidden" name="txnCode" value="${txnCode}">
-        <input type="hidden" name="merchantSafeId" value="${merchantSafeId}">
-        <input type="hidden" name="terminalSafeId" value="${terminalSafeId}">
-        <input type="hidden" name="orderId" value="${orderId}">
-        <input type="hidden" name="lang" value="${lang}">
-        <input type="hidden" name="amount" value="${amount}">
-        <input type="hidden" name="currencyCode" value="${currencyCode}">
-        <input type="hidden" name="installCount" value="${installCount}">
-        <input type="hidden" name="okUrl" value="${okUrl}">
-        <input type="hidden" name="failUrl" value="${failUrl}">
-        <input type="hidden" name="emailAddress" value="${emailAddress}">
-        <input type="hidden" name="randomNumber" value="${randomNumber}">
-        <input type="hidden" name="requestDateTime" value="${requestDateTime}">
-        <input type="hidden" name="subMerchantId" value="${subMerchantId}">
-        <input type="hidden" name="b2bIdentityNumber" value="${b2bIdentityNumber}">
-        <input type="hidden" name="merchantData" value="${merchantData}">
-        <input type="hidden" name="merchantBranchNo" value="${merchantBranchNo}">
+        <input type="hidden" name="paymentModel" value="${params.paymentModel}">
+        <input type="hidden" name="txnCode" value="${params.txnCode}">
+        <input type="hidden" name="merchantSafeId" value="${params.merchantSafeId}">
+        <input type="hidden" name="terminalSafeId" value="${params.terminalSafeId}">
+        <input type="hidden" name="orderId" value="${params.orderId}">
+        <input type="hidden" name="lang" value="${params.lang}">
+        <input type="hidden" name="amount" value="${params.amount}">
+        <input type="hidden" name="currencyCode" value="${params.currencyCode}">
+        <input type="hidden" name="installCount" value="${params.installCount}">
+        <input type="hidden" name="okUrl" value="${params.okUrl}">
+        <input type="hidden" name="failUrl" value="${params.failUrl}">
+        <input type="hidden" name="emailAddress" value="${params.emailAddress}">
+        <input type="hidden" name="randomNumber" value="${params.randomNumber}">
+        <input type="hidden" name="requestDateTime" value="${params.requestDateTime}">
+        <input type="hidden" name="subMerchantId" value="${params.subMerchantId}">
+        <input type="hidden" name="b2bIdentityNumber" value="${params.b2bIdentityNumber}">
+        <input type="hidden" name="merchantData" value="${params.merchantData}">
+        <input type="hidden" name="merchantBranchNo" value="${params.merchantBranchNo}">
         <input type="hidden" name="hash" value="${hash}">
       </form>
     `;
   }
 
   public verifyPaymentResponse(response: Record<string, string>): boolean {
-    // Log the full response for debugging
-    console.log('Payment Response:', response);
-    return true;
+    try {
+      // Extract hash from response
+      const receivedHash = response.hash;
+      if (!receivedHash) {
+        console.error('No hash found in response');
+        return false;
+      }
+
+      // Create a copy of response without the hash
+      const { hash, ...params } = response;
+
+      // Calculate hash from response parameters
+      const calculatedHash = this.calculateHash(params);
+
+      // Compare hashes
+      const isValid = receivedHash === calculatedHash;
+      
+      if (!isValid) {
+        console.error('Hash verification failed', {
+          received: receivedHash,
+          calculated: calculatedHash
+        });
+      }
+
+      return isValid;
+    } catch (error) {
+      console.error('Error verifying payment response:', error);
+      return false;
+    }
   }
 }
