@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <h1>Akbank Payment Test</h1>
+    <h1>Payment Integration Tests</h1>
     
     <div class="test-payment">
       <h2>Test Payment Details</h2>
@@ -10,12 +10,26 @@
         <p><strong>Email:</strong> test@example.com</p>
       </div>
 
-      <AkbankPayment
-        :amount="1.00"
-        :order-id="orderId"
-        email="test@example.com"
-        :installment-count="1"
-      />
+      <div class="payment-options">
+        <div class="payment-option">
+          <h3>Akbank Payment</h3>
+          <AkbankPayment
+            :amount="1.00"
+            :order-id="orderId"
+            email="test@example.com"
+            :installment-count="1"
+          />
+        </div>
+
+        <div class="payment-option">
+          <h3>QNB Payment</h3>
+          <QNBPayment
+            :amount="1.00"
+            :order-id="orderId"
+            :installment-count="0"
+          />
+        </div>
+      </div>
     </div>
 
     <div class="test-cards">
@@ -29,11 +43,27 @@
       </div>
 
       <div class="card-info">
-        <h3>Failed Payment</h3>
+        <h3>Akbank Failed Payment</h3>
         <p><strong>Card Number:</strong> 4355 0843 5508 4359</p>
         <p><strong>Expiry:</strong> 12/2026</p>
         <p><strong>CVV:</strong> 000</p>
         <p><strong>3D Password:</strong> a</p>
+      </div>
+
+      <div class="card-info">
+        <h3>QNB Successful Payment</h3>
+        <p><strong>Card Number:</strong> 4282209027132016</p>
+        <p><strong>Expiry:</strong> 05/2024</p>
+        <p><strong>CVV:</strong> 123</p>
+        <p><strong>3D Password:</strong> 123456</p>
+      </div>
+
+      <div class="card-info">
+        <h3>QNB Failed Payment</h3>
+        <p><strong>Card Number:</strong> 5406675406675403</p>
+        <p><strong>Expiry:</strong> 12/2023</p>
+        <p><strong>CVV:</strong> 000</p>
+        <p><strong>3D Password:</strong> 123456</p>
       </div>
     </div>
   </div>
@@ -41,6 +71,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import QNBPayment from '~/components/QNBPayment.vue'
 
 // Generate a random order ID for testing
 const orderId = ref(`${Date.now()}-${Math.random().toString(36).substring(2, 7)}`)
@@ -87,6 +118,20 @@ h2 {
   margin-bottom: 2rem;
   padding: 1rem;
   background: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.payment-options {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.payment-option {
+  flex: 1;
+  background: white;
+  padding: 1rem;
   border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
