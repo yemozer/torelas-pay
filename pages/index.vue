@@ -29,6 +29,13 @@
             :installment-count="0"
           />
         </div>
+
+        <div class="payment-option">
+          <h3>Garanti Payment</h3>
+          <GarantiPayment
+            :orderNo="orderId"
+          />
+        </div>
       </div>
     </div>
 
@@ -65,6 +72,13 @@
         <p><strong>CVV:</strong> 000</p>
         <p><strong>3D Password:</strong> 123456</p>
       </div>
+
+      <div class="card-info">
+        <h3>Garanti Test Card</h3>
+        <p><strong>Card Number:</strong> 5406697543211173</p>
+        <p><strong>Expiry:</strong> 03/23</p>
+        <p><strong>CVV:</strong> 465</p>
+      </div>
     </div>
   </div>
 </template>
@@ -72,6 +86,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import QNBPayment from '~/components/QNBPayment.vue'
+import GarantiPayment from '~/components/GarantiPayment.vue'
 
 // Generate a random order ID for testing
 const orderId = ref(`${Date.now()}-${Math.random().toString(36).substring(2, 7)}`)

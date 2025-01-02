@@ -12,12 +12,31 @@ const paymentService = new AkbankPaymentService(config)
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   
-  const { amount, orderId, email, installmentCount } = body
+  const { 
+    amount, 
+    orderId, 
+    email, 
+    installmentCount,
+    paymentModel,
+    cardNumber,
+    expireDate,
+    cvv 
+  } = body
   
-  if (!amount || !orderId || !email) {
+  // Validate required fields
+  if (!amount || !orderId || !email || !paymentModel) {
     throw createError({
       statusCode: 400,
       message: 'Missing required fields'
+    })
+  }
+
+  // Validate amount format
+  const numericAmount = Number(amount)
+  if (isNaN(numericAmount) || numericAmount <= 0) {
+    throw createError({
+      statusCode: 400,
+      message: 'Invalid amount'
     })
   }
 
@@ -25,15 +44,64 @@ export default defineEventHandler(async (event) => {
   const host = event.node.req.headers.host
   const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
   const baseUrl = process.env.BASE_URL || `${protocol}://${host}`
-  
-  const form = paymentService.generatePaymentForm({
-    amount,
+
+  // Validate card details for 3D_PAY model
+  if (paymentModel === '3D_PAY') {
+    if (!cardNumber || !expireDate || !cvv) {
+      throw createError({
+        statusCode: 400,
+        message: 'Card details are required for 3D_PAY payment model'
+      })
+    }
+
+    // Validate card number (remove spaces and check length)
+    const cleanCardNumber = cardNumber.replace(/\s/g, '')
+    if (!/^\d{16}$/.test(cleanCardNumber)) {
+      throw createError({
+        statusCode: 400,
+        message: 'Invalid card number'
+      })
+    }
+
+    // Validate expiry date format (MMYY)
+    if (!/^(0[1-9]|1[0-2])\d{2}$/.test(expireDate)) {
+      throw createError({
+        statusCode: 400,
+        message: 'Invalid expiry date format (MMYY)'
+      })
+    }
+
+    // Validate CVV
+    if (!/^\d{3}$/.test(cvv)) {
+      throw createError({
+        statusCode: 400,
+        message: 'Invalid CVV'
+      })
+    }
+  }
+
+  const paymentRequest = {
+    amount: numericAmount,
     orderId,
     email,
     installmentCount,
-    successUrl: `${baseUrl}/api/payment/callback/success`,
-    failureUrl: `${baseUrl}/api/payment/callback/failure`
-  })
+    successUrl: `${baseUrl}/api/payment/callback/success?model=${paymentModel}`,
+    failureUrl: `${baseUrl}/api/payment/callback/failure?model=${paymentModel}`,
+    ...((paymentModel === '3D_PAY') && {
+      cardNumber,
+      expireDate,
+      cvv
+    })
+  }
+
+  let form;
+  switch (paymentModel) {
+    case '3D_PAY':
+      form = paymentService.generate3DPayForm(paymentRequest);
+      break;
+    default:
+      form = paymentService.generate3DPayHostingForm(paymentRequest);
+  }
 
   return { form }
 })
